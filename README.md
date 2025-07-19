@@ -44,7 +44,7 @@ If you are using version 1.6.2 or later of the Arduino software (IDE), you can u
 
 
 ## Zumo Hardware Walkthrough
-
+![Zumo Shield Image](https://littlebirdelectronics.com.au/cdn/shop/products/image_5f49cb58-7ae4-4f33-a623-96606832f563_1224x1224.jpg?v=1698749682)
 ### Motors & H-bridges
 
 ### Sensor array
@@ -82,7 +82,7 @@ motors.flipLeftMotor(boolean flip);
 motors.flipRightMotor(boolean flip);
 ```
 ### Activity 1: Let's Get Driving 
-Have a play around with the contol of the motors. you can use the `delay(uint seconds)` function to add a wait between turning on an off your motors
+Have a play around with the contol of the motors. you can use the `delay(uint milliseconds)` function to add a wait between turning on an off your motors
 
 ### Challenge: Drive in a square
 Write a sketch to drive your Zumo in a square.
@@ -93,7 +93,7 @@ Write a sketch to drive your Zumo in a square.
 
 ## Activity 3: Line Following
 ### Reflectance sensor intro
-![Reflectance Sensor Image](https://shop.pimoroni.com/cdn/shop/products/0J4207.1200_768x768_crop_center.jpg?v=1548858770)
+![Reflectance Sensor Image](https://shop.pimoroni.com/cdn/shop/products/0J4207.1200_768x768_crop_center.jpg?v=1548858770)\
 The reflectance sensor array on the Zumo robot is used to detect lines and surface contrast, making it ideal for line-following tasks.
 
 It works by using infrared (IR) LEDs paired with phototransistors. Each sensor emits IR light onto the surface beneath the robot. The amount of light reflected back depends on the surface:
@@ -101,14 +101,82 @@ It works by using infrared (IR) LEDs paired with phototransistors. Each sensor e
 - White or light surfaces reflect more IR light
 - Black or dark surfaces absorb light, reflecting less
 
-Each sensor measures how much IR light is reflected, giving an analog value that tells how dark or light the surface is under that sensor.
+Each sensor measures how much IR light is reflected, giving an analog value that tells how dark or light the surface is under that sensor. By reading multiple sensors at once, the robot can "see" where the line is and adjust its movement to follow it.
 
-By reading multiple sensors at once, the robot can "see" where the line is and adjust its movement to follow it.
 ### Calibrate sensors
+The sensor array is represented in code by a 6 value array, with each value being a measurement of each sensors analog level
+Calibration helps the robot learn the difference between light and dark surfaces. It does this by taking multiple readings as you move it over both white and black areas. This allows it to set a reliable range for line detection.
 
+```arduino
+#include <ZumoReflectanceSensorArray.h>
+
+ZumoReflectanceSensorArray reflectanceSensors;
+
+void setup() {
+  reflectanceSensors.init(); // initialize sensors
+  delay(500);
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // Calibrate by moving robot manually over line
+  for (int i = 0; i < 100; i++) {
+    reflectanceSensors.calibrate();
+    delay(20);
+  }
+
+  digitalWrite(LED_BUILTIN, HIGH); // indicate done
+  delay(1000);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+void loop() {
+  // Not used here — see next example
+}
+```
 
 ### Follow basic track using threshold logic
+After calibration, we can check each sensor’s reading. If a sensor sees "dark" (low reflectance), it’s likely over the line. We use this to steer the robot. We will set a threshold value that will act as the decision point between "dark" and "light"
 
+
+```arduino
+#include <ZumoReflectanceSensorArray.h>
+#include <ZumoMotors.h>
+
+ZumoReflectanceSensorArray reflectanceSensors;
+ZumoMotors motors;
+
+void setup() {
+  reflectanceSensors.init();
+  delay(500);
+
+  // Calibrate first
+  for (int i = 0; i < 100; i++) {
+    reflectanceSensors.calibrate();
+    delay(20);
+  }
+}
+
+void loop() {
+  unsigned int sensorValues[6]; // stores each sensor value
+  reflectanceSensors.read(sensorValues); //Read into sensorValues
+
+  // Set a threshold
+  int threshold = 600;
+
+  if (sensorValues[0] < threshold) {
+    // Leftmost sensor sees line -> turn left
+    motors.setSpeeds(-50, 150);
+  } else if (sensorValues[5] < threshold) {
+    // Rightmost sensor sees line -> turn right
+    motors.setSpeeds(150, -50);
+  } else {
+    // Go straight
+    motors.setSpeeds(150, 150);
+  }
+
+  delay(50); // small delay to smooth movement
+}
+
+```
 ## Activity 4: Sound & Lights
 - Use buzzer to play a tone
 - Flash LED on bump or lost line
