@@ -195,8 +195,89 @@ If the left most sensor see dark (`if (sensorValues[0] < threshold)`) turn left,
   delay(50); // small delay to smooth movement
 ```
 ## Activity 4: Sound & Lights
-- Use buzzer to play a tone
-- Flash LED on bump or lost line
+### Use buzzer to play a tone
+```arduino 
+#include <ZumoMotors.h>
+#include <ZumoBuzzer.h>
+#include <Pushbutton.h>
+
+ZumoMotors motors;
+ZumoBuzzer buzzer;
+Pushbutton button(ZUMO_BUTTON);
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  button.waitForButton();
+}
+
+void loop() {
+  if (button.isPressed()) {
+    // Simulate impact: alert + reverse
+    digitalWrite(LED_BUILTIN, HIGH);
+    buzzer.playFrequency(1000, 250, 15); // 1kHz for 250ms
+
+    motors.setSpeeds(-150, -150);
+    delay(500);
+
+    digitalWrite(LED_BUILTIN, LOW);
+    motors.setSpeeds(150, -150); // turn
+    delay(300);
+  } else {
+    motors.setSpeeds(150, 150);
+  }
+}
+
+```
+### Flash LED on bump or lost line
+```arduino 
+#include <ZumoMotors.h>
+#include <ZumoReflectanceSensorArray.h>
+#include <ZumoBuzzer.h>
+
+ZumoMotors motors;
+ZumoReflectanceSensorArray sensors;
+ZumoBuzzer buzzer;
+
+void setup() {
+  sensors.init();
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // Calibrate sensors
+  for (int i = 0; i < 100; i++) {
+    sensors.calibrate();
+    delay(20);
+  }
+}
+
+void loop() {
+  unsigned int sensorValues[6];
+  sensors.read(sensorValues);
+
+  int threshold = 600;
+
+  // Check if all sensors see white (line lost)
+  bool lineLost = true;
+  for (int i = 0; i < 6; i++) {
+    if (sensorValues[i] < threshold) {
+      lineLost = false;
+      break;
+    }
+  }
+
+  if (lineLost) {
+    // Alert: line lost
+    digitalWrite(LED_BUILTIN, HIGH);
+    buzzer.playFrequency(2000, 200, 15);
+    motors.setSpeeds(0, 0);
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+  } else {
+    // Normal movement
+    motors.setSpeeds(150, 150);
+  }
+}
+
+```
 
 ## Final Challenge: Race or Maze
 - Combine movement + sensors
