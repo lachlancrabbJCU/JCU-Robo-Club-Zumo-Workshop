@@ -88,8 +88,41 @@ Have a play around with the contol of the motors. you can use the `delay(uint mi
 Write a sketch to drive your Zumo in a square.
 
 ## Activity 2: Obstacle Course
-- Use pushbutton or simulate bumper
-- Add reverse/turn logic on “impact”
+### Use pushbutton or simulate bumper
+Zumo doesn’t have built-in mechanical bumpers, but we can simulate a collision using the onboard pushbutton to trigger an action like reversing or turning — just like if it hit an obstacle.\
+We will need to include Pushbutton.h
+```arduino
+#include <ZumoMotors.h>
+#include <Pushbutton.h>
+
+ZumoMotors motors;
+Pushbutton button(ZUMO_BUTTON); // onboard pushbutton
+```
+To check if the button is pressed
+```arduino 
+if (button.isPressed()) {
+  // Do Action
+}
+```
+Lets start off by writing some code were the zumo will stop if the button is pushed (it is in a collision).
+
+### Add reverse/turn logic on “impact”
+
+```arduino
+void loop() {
+  // Check if button is pressed (simulated collision)
+  if (button.isPressed()) {
+    // Simulate "collision response"
+    motors.setSpeeds(-150, -150); // reverse
+    delay(500);
+    motors.setSpeeds(-100, 100);  // spin turn
+    delay(400);
+  } else {
+    // Drive forward
+    motors.setSpeeds(150, 150);
+  }
+}
+```
 
 ## Activity 3: Line Following
 ### Reflectance sensor intro
@@ -136,32 +169,18 @@ void loop() {
 ### Follow basic track using threshold logic
 After calibration, we can check each sensor’s reading. If a sensor sees "dark" (low reflectance), it’s likely over the line. We use this to steer the robot. We will set a threshold value that will act as the decision point between "dark" and "light"
 
+```arduino
+  unsigned int sensorValues[6]; // storesd each sensor value
+  reflectanceSensors.read(sensorValues); //Read into sensorValues
+  // Set a threshold
+  int threshold = (reflectanceSensors.calibratedMinimumOn[0] + reflectanceSensors.calibratedMaximumOn[0]) / 2;
+```
+After getting the sensor values we can control the motors to follow the line. 
+
+If the left most sensor see dark (`if (sensorValues[0] < threshold)`) turn left, etc.
 
 ```arduino
-#include <ZumoReflectanceSensorArray.h>
-#include <ZumoMotors.h>
-
-ZumoReflectanceSensorArray reflectanceSensors;
-ZumoMotors motors;
-
-void setup() {
-  reflectanceSensors.init();
-  delay(500);
-
-  // Calibrate first
-  for (int i = 0; i < 100; i++) {
-    reflectanceSensors.calibrate();
-    delay(20);
-  }
-}
-
-void loop() {
-  unsigned int sensorValues[6]; // stores each sensor value
-  reflectanceSensors.read(sensorValues); //Read into sensorValues
-
-  // Set a threshold
-  int threshold = 600;
-
+  //Movement from decision
   if (sensorValues[0] < threshold) {
     // Leftmost sensor sees line -> turn left
     motors.setSpeeds(-50, 150);
@@ -174,8 +193,6 @@ void loop() {
   }
 
   delay(50); // small delay to smooth movement
-}
-
 ```
 ## Activity 4: Sound & Lights
 - Use buzzer to play a tone

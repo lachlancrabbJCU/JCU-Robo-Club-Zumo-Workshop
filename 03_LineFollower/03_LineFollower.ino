@@ -21,7 +21,7 @@ void loop() {
   reflectanceSensors.read(sensorValues); //Read into sensorValues
 
   // Set a threshold
-  int threshold = 600;
+  int threshold = (reflectanceSensors.calibratedMinimumOn[0] + reflectanceSensors.calibratedMaximumOn[0]) / 2;
 
   if (sensorValues[0] < threshold) {
     // Leftmost sensor sees line -> turn left
